@@ -1,0 +1,72 @@
+INC_SERVER()
+
+ENT.Heal = 10
+ENT.PointsMultiplier = 1.25
+ENT.Gravity = false
+
+function ENT:Hit(vHitPos, vHitNormal, eHitEntity, vOldVelocity)
+	if self:GetHitTime() ~= 0 then return end
+
+	self:SetHitTime(CurTime())
+
+	self:Fire("kill", "", 10)
+
+	local owner = self:GetOwner()
+	if not owner:IsValid() then owner = self end
+
+	vHitPos = vHitPos or self:GetPos()
+	vHitNormal = (vHitNormal or Vector(0, 0, -1)) * -1
+
+	self:SetSolid(SOLID_NONE)
+	self:SetMoveType(MOVETYPE_NONE)
+
+	self:SetPos(vHitPos + vHitNormal)
+
+	local alt = self:GetDTBool(0)
+	if eHitEntity:IsValid() then
+		self:AttachToPlayer(vHitPos, eHitEntity)
+
+		if eHitEntity:IsPlayer() then
+			if eHitEntity:Team() ~= TEAM_UNDEAD then
+				local ehithp, ehitmaxhp = eHitEntity:Health(), eHitEntity:GetMaxHealth()
+
+				if not (owner:IsSkillActive(SKILL_RECLAIMSOL) and ehithp >= ehitmaxhp) then
+					local status = eHitEntity:GiveStatus(alt and "strengthdartboost" or "medrifledefboost", (alt and 1 or 1.5) * (self.BuffDuration or 10))
+					status.Applier = owner
+
+					owner:HealPlayer(eHitEntity, self.Heal)
+
+					local txt = alt and "Усиливающей Винтовки" or "Мед. Карабина"
+
+					net.Start("zs_buffby")
+						net.WriteEntity(owner)
+						net.WriteString(txt)
+					net.Send(eHitEntity)
+
+					net.Start("zs_buffwith")
+						net.WriteEntity(eHitEntity)
+						net.WriteString(txt)
+					net.Send(owner)
+				else
+					self:DoRefund(owner)
+				end
+			end
+		else
+			self:DoRefund(owner)
+		end
+	else
+		self:DoRefund(owner)
+	end
+
+	self:SetAngles(vOldVelocity:Angle())
+
+	local effectdata = EffectData()
+		effectdata:SetOrigin(vHitPos)
+		effectdata:SetNormal(vHitNormal)
+		if eHitEntity:IsValid() then
+			effectdata:SetEntity(eHitEntity)
+		else
+			effectdata:SetEntity(NULL)
+		end
+	util.Effect(alt and "hit_strengthdart" or "hit_healdart2", effectdata)
+end

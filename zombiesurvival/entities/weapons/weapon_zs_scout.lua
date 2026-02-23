@@ -1,0 +1,89 @@
+AddCSLuaFile()
+DEFINE_BASECLASS("weapon_zs_base")
+
+SWEP.PrintName = "'Scout' Снайперка"
+SWEP.Description = "Самая обычная снайперская винтовка способная наносить хороший урон в голову."
+
+SWEP.Slot = 3
+SWEP.SlotPos = 0
+
+if CLIENT then
+	SWEP.ViewModelFlip = false
+
+	SWEP.VMPos = Vector(-1, -5, 1.5)
+
+	SWEP.HUD3DBone = "v_weapon.scout_Parent"
+	SWEP.HUD3DPos = Vector(-1, -2.75, -6)
+	SWEP.HUD3DAng = Angle(0, 0, 0)
+	SWEP.HUD3DScale = 0.015
+end
+SWEP.Base = "weapon_zs_base"
+
+SWEP.HoldType = "ar2"
+
+SWEP.ViewModel = "models/weapons/cstrike/c_snip_scout.mdl"
+SWEP.WorldModel = "models/weapons/w_snip_scout.mdl"
+SWEP.UseHands = true
+
+SWEP.ReloadSound = Sound("Weapon_Scout.ClipOut")
+SWEP.Primary.Sound = Sound("Weapon_Scout.Single")
+SWEP.Primary.Damage = 71
+SWEP.Primary.NumShots = 1
+SWEP.Primary.Delay = 1.25
+SWEP.ReloadDelay = SWEP.Primary.Delay
+
+SWEP.Primary.ClipSize = 10
+SWEP.Primary.Automatic = false
+SWEP.Primary.Ammo = "357"
+SWEP.Primary.DefaultClip = 25
+
+SWEP.Primary.Gesture = ACT_HL2MP_GESTURE_RANGE_ATTACK_CROSSBOW
+SWEP.ReloadGesture = ACT_HL2MP_GESTURE_RELOAD_SHOTGUN
+
+SWEP.ConeMax = 7.5
+SWEP.ConeMin = 0
+
+SWEP.IronSightsPos = Vector(5.015, -8, 2.52)
+SWEP.IronSightsAng = Vector(0, 0, 0)
+
+SWEP.WalkSpeed = SPEED_SLOW
+
+GAMEMODE:AttachWeaponModifier(SWEP, WEAPON_MODIFIER_CLIP_SIZE, 1)
+local branch = GAMEMODE:AddNewRemantleBranch(SWEP, 1, "'Толкатель' Снайперка", "Немного больше урона в голову и более точное прицеливание, половина магазина и увеличенная задержка огня", function(wept)
+	wept.HeadshotMulti = 2.2
+	wept.Primary.ClipSize = math.ceil(wept.Primary.ClipSize / 2)
+	wept.Primary.Delay = wept.Primary.Delay * 1.7
+
+	wept.IronsightsMultiplier = 0.15
+end)
+branch.NewNames = {[0]="Толкатель"}
+
+function SWEP:IsScoped()
+	return self:GetIronsights() and self.fIronTime and self.fIronTime + 0.25 <= CurTime()
+end
+
+function SWEP:EmitFireSound()
+	self:EmitSound(self.Primary.Sound, 85, 100)
+end
+
+if CLIENT then
+	SWEP.IronsightsMultiplier = 0.25
+
+	function SWEP:GetViewModelPosition(pos, ang)
+		if GAMEMODE.DisableScopes then return end
+
+		if self:IsScoped() then
+			return pos + ang:Up() * 256, ang
+		end
+
+		return BaseClass.GetViewModelPosition(self, pos, ang)
+	end
+
+	function SWEP:DrawHUDBackground()
+		if GAMEMODE.DisableScopes then return end
+
+		if self:IsScoped() then
+			self:DrawRegularScope()
+		end
+	end
+end

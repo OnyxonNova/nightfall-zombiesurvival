@@ -1,0 +1,9 @@
+INC_CLIENT()
+
+SWEP.PrintName = "Краб Смерти"
+SWEP.DrawCrosshair = false
+
+function SWEP:DrawHUD()
+	if GetConVar("crosshair"):GetInt() ~= 1 then return end
+	self:DrawCrosshairDot()
+end
